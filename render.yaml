@@ -9,7 +9,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.12.0"
       - key: MODEL_DOWNLOAD_URL
-        value: "https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.keras"
+        value: "https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.tflite"
       - key: MALLOC_ARENA_MAX
         value: "2"
       - key: TF_CPP_MIN_LOG_LEVEL

@@ -1,4 +1,4 @@
-tensorflow-cpu==2.16.1
+tflite-runtime==2.14.0
 fastapi==0.111.0
 uvicorn[standard]==0.30.1
 python-multipart==0.0.9

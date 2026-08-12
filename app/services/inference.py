@@ -5,20 +5,16 @@ import urllib.request
 from io import BytesIO
 from pathlib import Path
 
-# Memory optimization for 512MB RAM constraints (Render free tier)
-os.environ.setdefault("MALLOC_ARENA_MAX", "2")
-os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
-os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
-os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
-
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 
+try:
+    import tflite_runtime.interpreter as tflite
+except ImportError:
+    import tensorflow.lite as tflite
+
 _MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
-MODEL_PATH = _MODELS_DIR / "blood_cell_model.keras"
+MODEL_PATH = _MODELS_DIR / "blood_cell_model.tflite"
 CLASS_NAMES_PATH = _MODELS_DIR / "class_names.json"
 
 IMG_SIZE: tuple[int, int] = (224, 224)
@@ -71,7 +67,9 @@ def _download_model() -> None:
 
 # Load once at startup — reused across all requests
 _model_loaded: bool = False
-model: tf.keras.Model | None = None
+interpreter: tflite.Interpreter | None = None
+input_details = None
+output_details = None
 class_names: list[str] = []
 
 try:
@@ -80,14 +78,17 @@ try:
 
     _download_model()
 
-    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+    interpreter = tflite.Interpreter(model_path=str(MODEL_PATH))
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
 
     with open(CLASS_NAMES_PATH, "r") as f:
         class_names = json.load(f)
 
     _model_loaded = True
     gc.collect()
-    print("[inference] Model loaded successfully.")
+    print("[inference] TFLite model loaded successfully.")
 
 except Exception as _load_error:
     print(f"[inference] WARNING — model failed to load: {_load_error}")
@@ -99,7 +100,7 @@ def is_model_loaded() -> bool:
 
 
 def predict(image_bytes: bytes) -> dict:
-    if not _model_loaded or model is None:
+    if not _model_loaded or interpreter is None or input_details is None or output_details is None:
         raise RuntimeError("Model is not loaded. Check server logs.")
 
     try:
@@ -111,7 +112,9 @@ def predict(image_bytes: bytes) -> dict:
     arr = np.expand_dims(arr, axis=0)
     # Do NOT divide by 255 — the model has a built-in Rescaling(1./255) layer.
 
-    preds: np.ndarray = model.predict(arr, verbose=0)[0]
+    interpreter.set_tensor(input_details[0]["index"], arr)
+    interpreter.invoke()
+    preds = interpreter.get_tensor(output_details[0]["index"])[0]
 
     predicted_idx = int(np.argmax(preds))
     predicted_class = class_names[predicted_idx]

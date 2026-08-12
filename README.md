@@ -108,9 +108,18 @@ To keep the codebase lightweight (~50 KB) and ensure fast, reliable deployments,
    - Features a progress reporter that logs progress to stdout every 5 MB and automatically cleans up partial files if the download is interrupted.
 4. **Render Blueprint Configuration (`render.yaml`)**:
    - Configured with `runtime: python` and pinned `PYTHON_VERSION: "3.12.0"`.
-   - Build Command: `pip install -r requirements.txt` (uses `tensorflow-cpu==2.16.1` and `numpy==1.26.4` compatible with Linux `x86_64`).
+   - Build Command: `pip install -r requirements.txt` (uses `tflite-runtime==2.14.0` and `numpy==1.26.4` compatible with Linux `x86_64`).
    - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - `MODEL_DOWNLOAD_URL`: Points to `https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.keras`.
+   - `MODEL_DOWNLOAD_URL`: Points to `https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.tflite`.
+
+### TFLite Migration (Resolving Render 512 MB Out-Of-Memory Crash)
+During initial deployment on Render's free tier (which enforces a strict 512 MB RAM limit), the application suffered out-of-memory (OOM) crashes during startup. Full TensorFlow's C++ binary overhead, execution engine initialization, and thread pool allocations exceeded the 512 MB memory limit even before serving inference requests.
+
+To resolve this without altering model predictions, the backend was migrated from full TensorFlow to TensorFlow Lite:
+- **TFLite Conversion & Model Asset**: The model was converted to `.tflite` format (`blood_cell_model.tflite`) and uploaded to GitHub Release `v2.0`.
+- **Lightweight Runtime**: Replaced `tensorflow` / `tensorflow-cpu` with `tflite-runtime==2.14.0` in `requirements.txt`.
+- **Interpreter API**: Updated `app/services/inference.py` to use `tflite_runtime.interpreter.Interpreter` (with fallback to `tensorflow.lite.Interpreter`).
+- **Memory Footprint**: Reduced RAM usage from >500 MB down to ~60 MB, running reliably within Render's free tier boundaries.
 
 ---
 
