@@ -9,4 +9,4 @@ services:
       - key: PYTHON_VERSION
         value: "3.13.0"
       - key: MODEL_DOWNLOAD_URL
-        value: "REPLACE_WITH_YOUR_DIRECT_DOWNLOAD_URL"
+        value: "https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.keras"
