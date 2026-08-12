@@ -99,27 +99,27 @@ The trained Keras model (`blood_cell_model.keras`) is **148 MB**, which exceeds 
 ### The Architectural Solution: Decoupled Startup Fetching
 To keep the codebase lightweight (~50 KB) and ensure fast, reliable deployments, the model storage was decoupled from the source repository:
 
-1. **Git Exclusion**: `app/models/*.keras` is ignored in `.gitignore`, keeping binary blobs completely out of the Git history.
-2. **GitHub Release Storage**: The `blood_cell_model.keras` binary file was uploaded directly to GitHub Releases under tag **`v2.0`**.
+1. **Git Exclusion**: `app/models/*.tflite` and `app/models/*.keras` are ignored in `.gitignore`, keeping binary blobs completely out of the Git history.
+2. **GitHub Release Storage**: The `blood_cell_model.tflite` binary file was uploaded directly to GitHub Releases under tag **`v2.0`**.
 3. **Automated Startup Downloader (`_download_model()`)**:
    - Implemented in `app/services/inference.py` using Python's standard library `urllib.request`.
-   - On server startup, the service checks if `app/models/blood_cell_model.keras` is present locally.
-   - If missing, it automatically fetches the model from the URL specified by the `MODEL_DOWNLOAD_URL` environment variable.
+   - On server startup, the service checks if `app/models/blood_cell_model.tflite` is present locally.
+   - If missing, it automatically fetches the model from the URL specified by the `MODEL_DOWNLOAD_URL` environment variable using a `User-Agent: Mozilla/5.0` header to handle GitHub Release download policies.
    - Features a progress reporter that logs progress to stdout every 5 MB and automatically cleans up partial files if the download is interrupted.
 4. **Render Blueprint Configuration (`render.yaml`)**:
    - Configured with `runtime: python` and pinned `PYTHON_VERSION: "3.12.0"`.
-   - Build Command: `pip install -r requirements.txt` (uses `tflite-runtime==2.14.0` and `numpy==1.26.4` compatible with Linux `x86_64`).
+   - Build Command: `pip install -r requirements.txt` (uses `ai-edge-litert==2.1.6` and `numpy==1.26.4` compatible with Linux `x86_64`).
    - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - `MODEL_DOWNLOAD_URL`: Points to `https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.tflite`.
 
-### TFLite Migration (Resolving Render 512 MB Out-Of-Memory Crash)
-During initial deployment on Render's free tier (which enforces a strict 512 MB RAM limit), the application suffered out-of-memory (OOM) crashes during startup. Full TensorFlow's C++ binary overhead, execution engine initialization, and thread pool allocations exceeded the 512 MB memory limit even before serving inference requests.
+### LiteRT Migration (Resolving Render 512 MB Out-Of-Memory & Opcode 12 Issues)
+During initial deployment on Render's free tier (which enforces a strict 512 MB RAM limit), full TensorFlow's C++ binary overhead, execution engine initialization, and thread pool allocations exceeded the 512 MB memory limit even before serving inference requests.
 
-To resolve this without altering model predictions, the backend was migrated from full TensorFlow to TensorFlow Lite:
+To resolve this while supporting `FULLY_CONNECTED` opcode version 12 from TF 2.16+ model conversions:
 - **TFLite Conversion & Model Asset**: The model was converted to `.tflite` format (`blood_cell_model.tflite`) and uploaded to GitHub Release `v2.0`.
-- **Lightweight Runtime**: Replaced `tensorflow` / `tensorflow-cpu` with `tflite-runtime==2.14.0` in `requirements.txt`.
-- **Interpreter API**: Updated `app/services/inference.py` to use `tflite_runtime.interpreter.Interpreter` (with fallback to `tensorflow.lite.Interpreter`).
-- **Memory Footprint**: Reduced RAM usage from >500 MB down to ~60 MB, running reliably within Render's free tier boundaries.
+- **Google LiteRT Runtime**: Replaced `tensorflow` / `tensorflow-cpu` with Google's official standalone **`ai-edge-litert==2.1.6`** package in `requirements.txt`.
+- **Interpreter API**: Updated `app/services/inference.py` to use `ai_edge_litert.interpreter.Interpreter` (with fallback cascade to `tensorflow.lite` and `tflite_runtime`).
+- **Memory Footprint**: Reduced package size to 16 MB and total RAM usage to **~30 MB**, running reliably within Render's free tier boundaries.
 
 ---
 
@@ -148,10 +148,10 @@ pip install -r requirements.txt
 ```
 
 ### 3. Model Setup (Local Running)
-Either place `blood_cell_model.keras` inside `app/models/` manually, or set `MODEL_DOWNLOAD_URL`:
+Either place `blood_cell_model.tflite` inside `app/models/` manually, or set `MODEL_DOWNLOAD_URL`:
 ```bash
 # Optional: Auto-download at startup
-export MODEL_DOWNLOAD_URL="https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.keras"
+export MODEL_DOWNLOAD_URL="https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.tflite"
 ```
 
 ### 4. Run Server
@@ -207,3 +207,17 @@ curl -X POST "http://127.0.0.1:8000/predict" \
 - **Neutrophil vs. Eosinophil Recall**: ~85% recall on `NEUTROPHIL` due to visual similarity of multi-lobed nuclei in granulocytes.
 - **Diagnostic Scope**: This is a cell-type identification tool, **not** a disease diagnosis or cell-counting system.
 - **Single-Source Data**: Trained on Kaggle blood cell microscopy dataset; generalization to different staining protocols or microscope optics remains unverified.
+
+---
+
+## Dependency Versions
+
+```
+ai-edge-litert==2.1.6
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+pillow==10.4.0
+numpy==1.26.4
+pydantic==2.7.1
+```
