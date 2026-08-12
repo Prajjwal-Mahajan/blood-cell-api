@@ -48,21 +48,27 @@ def _download_model() -> None:
     print(f"[inference] Downloading model from {url}")
     _MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    _last: list[int] = [0]
-
-    def _progress(blocks: int, block_size: int, total: int) -> None:
-        mb = blocks * block_size / (1024 * 1024)
-        if mb - _last[0] >= 5:
-            _last[0] = int(mb)
-            print(f"[inference]   {mb:.1f} MB / {total / (1024*1024):.1f} MB")
-
     try:
-        urllib.request.urlretrieve(url, MODEL_PATH, reporthook=_progress)
-        print(f"[inference] Download complete.")
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as resp, open(MODEL_PATH, "wb") as f:
+            total = int(resp.headers.get("Content-Length", 0))
+            downloaded = 0
+            _last_mb = 0
+            while True:
+                chunk = resp.read(1024 * 1024)
+                if not chunk:
+                    break
+                f.write(chunk)
+                downloaded += len(chunk)
+                mb = downloaded / (1024 * 1024)
+                if mb - _last_mb >= 5:
+                    _last_mb = int(mb)
+                    print(f"[inference]   {mb:.1f} MB / {total / (1024*1024):.1f} MB")
+        print("[inference] Download complete.")
     except Exception as exc:
         if MODEL_PATH.exists():
             MODEL_PATH.unlink()
-        raise RuntimeError(f"Failed to download model: {exc}") from exc
+        raise RuntimeError(f"Failed to download model from {url}: {exc}") from exc
 
 
 # Load once at startup — reused across all requests
