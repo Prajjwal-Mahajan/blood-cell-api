@@ -1,0 +1,2 @@
+# No Git LFS needed — model file is excluded from the repo entirely.
+# It is downloaded at server startup via the MODEL_DOWNLOAD_URL env var.

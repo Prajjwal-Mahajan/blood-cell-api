@@ -1,0 +1,26 @@
+# Model binary — too large for GitHub; downloaded at startup via MODEL_DOWNLOAD_URL
+app/models/*.keras
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python bytecode cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Test outputs / temporary files
+*.log

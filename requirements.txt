@@ -1,0 +1,7 @@
+tensorflow==2.21.0
+fastapi==0.141.1
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+pillow==11.3.0
+numpy==2.2.0
+pydantic==2.13.4

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: blood-cell-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+      - key: MODEL_DOWNLOAD_URL
+        value: "REPLACE_WITH_YOUR_DIRECT_DOWNLOAD_URL"
