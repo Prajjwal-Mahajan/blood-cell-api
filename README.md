@@ -108,7 +108,7 @@ To keep the codebase lightweight (~50 KB) and ensure fast, reliable deployments,
    - Features a progress reporter that logs progress to stdout every 5 MB and automatically cleans up partial files if the download is interrupted.
 4. **Render Blueprint Configuration (`render.yaml`)**:
    - Configured with `runtime: python` and pinned `PYTHON_VERSION: "3.12.0"`.
-   - Build Command: `pip install -r requirements.txt` (uses `tensorflow==2.16.1` and `numpy==1.26.4` compatible with Linux `x86_64`).
+   - Build Command: `pip install -r requirements.txt` (uses `tensorflow-cpu==2.16.1` and `numpy==1.26.4` compatible with Linux `x86_64`).
    - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - `MODEL_DOWNLOAD_URL`: Points to `https://github.com/Prajjwal-Mahajan/blood-cell-api/releases/download/v2.0/blood_cell_model.keras`.
 

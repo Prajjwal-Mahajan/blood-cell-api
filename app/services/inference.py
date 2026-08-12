@@ -1,8 +1,17 @@
+import gc
 import json
 import os
 import urllib.request
 from io import BytesIO
 from pathlib import Path
+
+# Memory optimization for 512MB RAM constraints (Render free tier)
+os.environ.setdefault("MALLOC_ARENA_MAX", "2")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTRAOP_THREADS", "1")
+os.environ.setdefault("TF_NUM_INTEROP_THREADS", "1")
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
 
 import numpy as np
 import tensorflow as tf
@@ -77,6 +86,7 @@ try:
         class_names = json.load(f)
 
     _model_loaded = True
+    gc.collect()
     print("[inference] Model loaded successfully.")
 
 except Exception as _load_error:
