@@ -9,9 +9,9 @@ import numpy as np
 from PIL import Image
 
 try:
-    import tflite_runtime.interpreter as tflite
-except ImportError:
     import tensorflow.lite as tflite
+except ImportError:
+    import tflite_runtime.interpreter as tflite
 
 _MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 MODEL_PATH = _MODELS_DIR / "blood_cell_model.tflite"
