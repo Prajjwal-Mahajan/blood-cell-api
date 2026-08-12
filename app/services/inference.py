@@ -73,6 +73,7 @@ def _download_model() -> None:
 
 # Load once at startup — reused across all requests
 _model_loaded: bool = False
+_load_error_msg: str | None = None
 interpreter: tflite.Interpreter | None = None
 input_details = None
 output_details = None
@@ -97,6 +98,7 @@ try:
     print("[inference] TFLite model loaded successfully.")
 
 except Exception as _load_error:
+    _load_error_msg = str(_load_error)
     print(f"[inference] WARNING — model failed to load: {_load_error}")
     _model_loaded = False
 
@@ -105,9 +107,13 @@ def is_model_loaded() -> bool:
     return _model_loaded
 
 
+def get_load_error() -> str | None:
+    return _load_error_msg
+
+
 def predict(image_bytes: bytes) -> dict:
     if not _model_loaded or interpreter is None or input_details is None or output_details is None:
-        raise RuntimeError("Model is not loaded. Check server logs.")
+        raise RuntimeError(f"Model is not loaded. Load error: {_load_error_msg}")
 
     try:
         img = Image.open(BytesIO(image_bytes)).convert("RGB").resize(IMG_SIZE)

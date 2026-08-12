@@ -47,6 +47,7 @@ def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         model_loaded=inference.is_model_loaded(),
+        load_error=inference.get_load_error(),
     )
 
 

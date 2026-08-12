@@ -14,6 +14,7 @@ class HealthResponse(BaseModel):
 
     status: str = Field(..., examples=["ok"])
     model_loaded: bool
+    load_error: str | None = None
 
 
 class WelcomeResponse(BaseModel):
